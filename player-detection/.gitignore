@@ -1,0 +1,23 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.venv/
+.DS_Store
+
+# data
+data/raw_clips/*.mp4
+data/raw_clips/*.mov
+data/frames/*.jpg
+data/outputs/*.json
+data/outputs/*.mp4
+data/outputs/*.pkl
+data/outputs/mock_storage/
+
+# models
+models/*.pt
+yolo11m.pt
+
+# notebooks
+.ipynb_checkpoints/

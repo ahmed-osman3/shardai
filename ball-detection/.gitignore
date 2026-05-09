@@ -1,0 +1,36 @@
+# footage and large binaries — keep folder structure but ignore contents
+data/raw_clips/*
+data/frames/*
+data/outputs/*
+models/*
+*.mp4
+*.mov
+*.pt
+*.onnx
+
+# keep placeholder files so dirs exist on clone
+!data/raw_clips/.gitkeep
+!data/frames/.gitkeep
+!data/outputs/.gitkeep
+!models/.gitkeep
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# macOS
+.DS_Store
+
+# editors
+.vscode/
+.idea/
