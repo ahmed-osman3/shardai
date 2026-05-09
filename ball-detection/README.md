@@ -9,8 +9,8 @@ Prototype ball detection pipeline for UK 5/7-a-side football. This is the first 
 **Requirements:** Python 3.11+, macOS (Apple Silicon) or Linux with CUDA GPU.
 
 ```bash
-git clone <repo>
-cd ball-detection
+git clone https://github.com/ahmed-osman3/shardai
+cd shardai/ball-detection
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
@@ -25,9 +25,9 @@ python scripts/setup_clips.py
 
 Or drop your own footage into `data/raw_clips/`. Video files are gitignored.
 
-The pretrained YOLO model auto-downloads from ultralytics on first use — no manual step needed.
+The pretrained YOLO model auto-downloads from Ultralytics on first use — no manual step needed.
 
-For a fine-tuned model, drop `ball_v1.pt` (or any single-class `.pt`) into `models/` and update `config.py: model_path`.
+For a fine-tuned model, drop `ball_v1.pt` (or any single-class `.pt`) into `models/` and pass `--model models/ball_v1.pt --ball-class-id 0`.
 
 ---
 
@@ -41,6 +41,32 @@ python scripts/run_pipeline.py --input data/raw_clips/match1.mp4
 #   data/outputs/match1.json            ← ball positions + mock player positions + events
 #   data/outputs/match1_annotated.mp4   ← video with trajectory overlay
 ```
+
+Useful flags:
+- `--max-frames N` — stop after N frames (fast iteration)
+- `--no-tiling` — whole-frame inference instead of tiled (~10× faster on 1080p, lower far-end recall)
+- `--no-video` — JSON only, skip video render
+- `--fps N` — subsample source video to N FPS
+- `--ball-class-id 0` — use with fine-tuned single-class model instead of COCO class 32
+- `--model models/ball_v1.pt` — path to custom weights
+- `--device {auto|cpu|mps|cuda}` — force device (default: auto-selects MPS on Apple Silicon)
+- `--persist-tracks` — save raw tracks before event detection for offline analysis
+- `--verbose` — enable debug logging
+
+---
+
+## Key config defaults (`config.py`)
+
+| Setting | Default | Notes |
+|---|---|---|
+| `confidence_threshold` | `0.25` | Lower to catch far-end balls at the cost of more false positives |
+| `iou_threshold` | `0.45` | NMS deduplication |
+| `ball_class_id` | `32` | COCO sports ball; set to `0` for fine-tuned models |
+| `tiling` | `True` | Tiled inference enabled by default; use `--no-tiling` to disable |
+| `tile_size` | `640` | Tile edge length in pixels |
+| `tile_overlap` | `128` | Overlap between adjacent tiles |
+| `kalman_max_lost_frames` | `30` | Frames before track is dropped (≈0.5 s @ 60 fps) |
+| `device` | `"auto"` | Auto-selects MPS → CUDA → CPU |
 
 ---
 
@@ -100,19 +126,26 @@ Reports mAP@50, mAP@50-95, per-zone recall (near-half / far-half / corners), det
 
 ### Where real implementations will live (future modules)
 
-- **Player detection + bib OCR:** `src/player_detection/` — YOLOv8 person detector + PaddleOCR on cropped bib regions
+- **Player detection + bib OCR:** already implemented in `../player-detection/` — YOLO11 person detector + Tesseract OCR on cropped bib regions
 - **Pitch calibration:** `src/calibration/` — 4-corner homography from user-selected keypoints or automatic line detection
 - **Event detection:** `src/events/` — promoted from `mocks/event_detector.py` with tuned thresholds
 - **Storage:** `src/storage/` — real R2/S3 with presigned URLs
-- **Backend API:** separate FastAPI service (different repo)
-- **Mobile app:** separate React Native project (different repo)
+- **Backend API:** separate FastAPI service
+- **Mobile app:** separate React Native project
 
 ---
 
 ## Known limitations
 
 - **Single camera only.** No multi-angle reconstruction; far-end ball detection degrades with distance.
-- **Far-end detection is hard.** Ball is ~10px at 40m on 1080p. Tiling helps but fine-tuning on far-end crops is essential.
+- **Far-end detection is hard.** Ball is ~10 px at 40 m on 1080p. Tiling helps but fine-tuning on far-end crops is essential.
 - **No training code.** Fine-tune in Colab using Roboflow export; drop the `.pt` into `models/`.
-- **Mock players are synthetic.** Per-player stats and possession logic will be inaccurate until real player detection is wired in.
+- **Mock players are synthetic.** Per-player stats and possession logic will be inaccurate until real player detection is wired in from `../player-detection/`.
 - **No temporal smoothing on events.** Event detector fires on individual frames; a short debounce window is needed in production.
+
+---
+
+## See also
+
+- `doc/IMPLEMENTATION_PLAN.md` — design notes and handoff doc.
+- `../player-detection/README.md` — sibling module (player detection + bib identity resolution).
